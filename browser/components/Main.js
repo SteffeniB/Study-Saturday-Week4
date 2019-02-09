@@ -4,45 +4,18 @@ import axios from 'axios';
 import StudentList from './StudentList.js';
 import SingleStudent from './SingleStudent.js';
 import NewStudentForm from './NewStudentForm.js';
+import { runInNewContext } from 'vm';
+import {
+  fetchStudents,
+  postStudent,
+  selectStudent,
+  showStudent,
+} from '../store';
+import { connect } from 'react-redux';
 
-export default class Main extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      students: [],
-      selectedStudent: {},
-      showStudent: false,
-    };
-
-    this.selectStudent = this.selectStudent.bind(this);
-    this.handleClick = this.handleClick.bind(this);
-  }
-
+class Main extends Component {
   componentDidMount() {
-    this.getStudents();
-  }
-
-  async getStudents() {
-    console.log('fetching');
-    try {
-      const { data } = await axios.get('/student');
-      this.setState({ students: data });
-      console.log('THis is the State', this.state);
-    } catch (err) {
-      console.error(err);
-    }
-  }
-
-  selectStudent(student) {
-    return this.setState({
-      selectedStudent: student,
-    });
-  }
-
-  handleClick(e) {
-    return this.setState({
-      showStudent: !this.state.showStudent,
-    });
+    this.props.fetchStudents();
   }
 
   render() {
@@ -50,8 +23,12 @@ export default class Main extends Component {
     return (
       <div>
         <h1>Students</h1>
-        <button onClick={this.handleClick}>Add Student</button>
-        {this.state.showStudent ? <NewStudentForm /> : null}
+        <button type="button" onClick={this.props.showStudentFunc}>
+          Add Student
+        </button>
+        {this.props.showStudent ? (
+          <NewStudentForm addStudent={this.props.addStudent} />
+        ) : null}
         <table>
           <thead>
             <tr>
@@ -60,14 +37,35 @@ export default class Main extends Component {
             </tr>
           </thead>
           <StudentList
-            students={this.state.students}
-            selectStudent={this.selectStudent}
+            students={this.props.students}
+            selectStudent={this.props.selectStudent}
           />
         </table>
-        {this.state.selectedStudent.id ? (
-          <SingleStudent student={this.state.selectedStudent} />
+        {this.props.selectedStudent.id ? (
+          <SingleStudent student={this.props.selectedStudent} />
         ) : null}
       </div>
     );
   }
 }
+const mapStateToProps = state => {
+  return {
+    students: state.students,
+    selectedStudent: state.selectedStudent,
+    showStudent: state.showStudent,
+  };
+};
+
+const mapDispatchToProps = dispatch => {
+  return {
+    fetchStudents: () => dispatch(fetchStudents()),
+    addStudent: studentData => dispatch(postStudent(studentData)),
+    selectStudent: student => dispatch(selectStudent(student)),
+    showStudentFunc: () => dispatch(showStudent()),
+  };
+};
+
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps
+)(Main);
